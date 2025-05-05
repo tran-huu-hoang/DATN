@@ -3,4 +3,194 @@
     Layout = "~/Areas/Admin/Views/Shared/Admin.cshtml";
 }
 
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .card-stat {
+        border-radius: 1rem;
+        transition: 0.3s;
+    }
+
+    .card-stat:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
+    }
+
+    .chart-container {
+        background: white;
+        border-radius: 1rem;
+        padding: 20px;
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.05);
+    }
+</style>
+
+    <div class="py-5">
+        <!-- Thống kê tổng quan -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-3">
+                <div class="card card-stat text-white bg-primary text-center p-4">
+                    <div class="card-body">
+                        <h3 class="text-white">Tổng sinh viên</h3>
+                        <h3 class="text-white">1,200</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-stat text-white bg-success text-center p-4">
+                    <div class="card-body">
+                        <h3 class="text-white">Tỉ lệ điểm danh TB</h3>
+                        <h3 class="text-white">86%</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-stat text-white bg-warning text-center p-4">
+                    <div class="card-body">
+                        <h3 class="text-white">Buổi học tháng này</h3>
+                        <h3 class="text-white">320</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-stat text-white bg-danger text-center p-4">
+                    <div class="card-body">
+                        <h3 class="text-white">Tỉ lệ rớt môn</h3>
+                        <h3 class="text-white">12%</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Biểu đồ điểm danh -->
+        <div class="chart-container mb-5">
+            <h4 class="mb-3">📈 Tỉ lệ điểm danh theo lớp</h4>
+            <canvas id="attendanceChart"></canvas>
+        </div>
+
+        <!-- Bảng thống kê điểm danh -->
+        <div class="card mb-5">
+            <div class="card-header bg-info text-white fw-bold">
+                📅 Báo cáo điểm danh theo lớp
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped" id="attendanceTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Lớp</th>
+                            <th>Số buổi</th>
+                            <th>Điểm danh (%)</th>
+                            <th>Sinh viên vắng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dữ liệu động sẽ được điền vào đây -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Top sinh viên -->
+        <div class="card">
+            <div class="card-header bg-success text-white fw-bold">
+                🎓 Top sinh viên điểm trung bình cao nhất
+            </div>
+            <div class="card-body">
+                <table class="table table-hover table-bordered" id="topStudentsTable">
+                    <thead class="table-success">
+                        <tr>
+                            <th>Họ tên</th>
+                            <th>Lớp</th>
+                            <th>Điểm trung bình</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dữ liệu động sẽ được điền vào đây -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Dữ liệu mock cho các lớp
+        const classesData = [
+          { name: 'CNTT01', attendance: 92, totalClasses: 48, absent: 5 },
+          { name: 'QTKD02', attendance: 81, totalClasses: 50, absent: 12 },
+          { name: 'KTPM03', attendance: 88, totalClasses: 47, absent: 7 },
+          { name: 'CNTT04', attendance: 85, totalClasses: 49, absent: 6 },
+          { name: 'QTKD05', attendance: 90, totalClasses: 46, absent: 4 },
+          { name: 'KTPM06', attendance: 78, totalClasses: 52, absent: 15 },
+          { name: 'CNTT07', attendance: 94, totalClasses: 45, absent: 3 },
+          { name: 'QTKD08', attendance: 80, totalClasses: 48, absent: 9 },
+          { name: 'KTPM09', attendance: 86, totalClasses: 50, absent: 6 },
+          { name: 'CNTT10', attendance: 91, totalClasses: 51, absent: 8 },
+          { name: 'QTKD11', attendance: 77, totalClasses: 46, absent: 13 },
+          { name: 'KTPM12', attendance: 85, totalClasses: 50, absent: 10 },
+          { name: 'CNTT13', attendance: 82, totalClasses: 47, absent: 11 },
+          { name: 'QTKD14', attendance: 89, totalClasses: 52, absent: 5 },
+          { name: 'KTPM15', attendance: 93, totalClasses: 50, absent: 4 }
+        ];
+
+        // Cập nhật bảng điểm danh
+        const tableBody = document.querySelector('#attendanceTable tbody');
+        classesData.forEach(classData => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${classData.name}</td>
+            <td>${classData.totalClasses}</td>
+            <td>${classData.attendance}%</td>
+            <td>${classData.absent}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+
+        // Cập nhật bảng top sinh viên
+        const topStudentsTable = document.querySelector('#topStudentsTable tbody');
+        const topStudents = [
+          { name: 'Nguyễn Văn A', class: 'CNTT01', gpa: 9.2 },
+          { name: 'Trần Thị B', class: 'KTPM03', gpa: 9.0 },
+          { name: 'Lê Văn C', class: 'QTKD02', gpa: 8.9 },
+          { name: 'Nguyễn Thị D', class: 'CNTT04', gpa: 8.8 },
+          { name: 'Trần Văn E', class: 'KTPM06', gpa: 8.7 }
+        ];
+
+        topStudents.forEach(student => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${student.name}</td>
+            <td>${student.class}</td>
+            <td>${student.gpa}</td>
+          `;
+          topStudentsTable.appendChild(row);
+        });
+
+        // Vẽ biểu đồ điểm danh
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: classesData.map(classData => classData.name),
+            datasets: [{
+              label: 'Điểm danh (%)',
+              data: classesData.map(classData => classData.attendance),
+              backgroundColor: 'rgba(13, 110, 253, 0.7)'
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100
+              }
+            }
+          }
+        });
+    </script>
+
 
